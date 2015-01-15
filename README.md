@@ -1,31 +1,29 @@
 # Sequel::PgToJson
 
-TODO: Write a gem description
+Uses native PG functions for fast but simple JSON serialization.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'sequel-pg_to_json'
+gem 'sequel-pg_to_json', git: 'git@git.noxqsapp.nl:gems/sequel-pg_to_json.git'
 ```
 
 And then execute:
 
     $ bundle
 
-Or install it yourself as:
-
-    $ gem install sequel-pg_to_json
-
 ## Usage
 
-TODO: Write usage instructions here
+Use it for all Sequel Models:
+```ruby
+Sequel::Model.plugin :pg_to_json
+```
 
-## Contributing
-
-1. Fork it ( https://github.com/[my-github-username]/sequel-pg_to_json/fork )
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
+Or use it for only a single model:
+```ruby
+class User < Sequel::Model
+  plugin :pg_to_json
+end
+```
