@@ -1,11 +1,10 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'sequel/pg_to_json/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "sequel-pg_to_json"
-  spec.version       = Sequel::PgToJson::VERSION
+  spec.version       = "0.1"
   spec.authors       = ["Herre Groen"]
   spec.email         = ["herregroen@noxqslabs.nl"]
   spec.summary       = %q{TODO: Write a short summary. Required.}
