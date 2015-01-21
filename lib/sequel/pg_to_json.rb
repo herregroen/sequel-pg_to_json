@@ -28,35 +28,53 @@ module Sequel
       end
       module DatasetMethods
         def to_json opts={}
-          g = ["#{self.model.table_name}.#{self.model.primary_key}"]
+          opts = { associations: true }.merge(opts)
+          ds = self
+          if opts[:associations]
+            self.model._json_assocs.each do |assoc|
+              r = ds.model.association_reflection(assoc)
+              m = r[:class_name].split('::').inject(Object) {|o,c| o.const_get c}
+              s = m._json_props
+              s << k if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
+              s << k if k = m.primary_key and s.any? and not s.include?(k)
+              ds = ds.eager_graph(assoc => proc{|ads| ads.select(*s) })
+            end
+          end
           if self.model._json_props.any?
             s  = self.model._json_props
             s << self.model.primary_key unless s.include?(self.model.primary_key)
-            ds = self.select{s.map{|p|`#{self.model.table_name}.#{p}`}}
+            ds = ds.select{s.map{|p|`#{ds.model.table_name}.#{p}`}}
           else
-            ds = self.select{`#{self.model.table_name}.*`}
+            ds = ds.select{`#{ds.model.table_name}.*`}
           end
-          self.model._json_assocs.each do |assoc|
-            r = self.model.association_reflection(assoc)
-            s = r[:model]._json_props
-            s << k if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
-            ds.eager_graph(assoc => proc{|ads| ads.select(*s) })
-            if r[:cartesian_product_number] == 0
-              ds = ds.select_append{array_to_json(array_agg(`\"#{assoc}\"`)).as(assoc)}
-            else
-              ds = ds.select_append{row_to_json(`\"#{assoc}\"`).as(assoc)}
-              g << "\"#{assoc}\".*"
+          if opts[:associations]
+            g = ["#{self.model.table_name}.#{self.model.primary_key}"]
+            self.model._json_assocs.each do |assoc|
+              r = ds.model.association_reflection(assoc)
+              if r[:cartesian_product_number] == 0
+                ds = ds.select_append{row_to_json(`\"#{assoc}\"`).as(assoc)}
+                g << "\"#{assoc}\".*"
+              else
+                ds = ds.select_append{array_to_json(array_agg(`\"#{assoc}\"`)).as(assoc)}
+              end
             end
+            ds = ds.group{g.map{|c| `#{c}`}}
           end
-          ds.from_self(alias: :row).select{array_to_json(array_agg(row))}.all[0][:array_to_json] || '[]'
-          # sql = self.select(*self.model._json_props).sql
-#           self.db["SELECT array_to_json(array_agg(row_to_json(row))) FROM (#{sql}) as row"].all[0][:array_to_json] || '[]'
+          ds.from_self(alias: :row).get{array_to_json(array_agg(row_to_json(row)))}.gsub('[null]','[]')
         end
       end
       module InstanceMethods
-        def to_json opts={}
+        def select_json_values
           vals = self.values
           vals = vals.select { |k| self.class._json_props.include?(k) } if self.class._json_props.any?
+          return vals
+        end
+        def to_json opts={}
+          vals = select_json_values
+          self.class._json_assocs.each do |assoc|
+            obj = send(assoc)
+            vals[assoc] = obj.is_a?(Array) ? obj.map(&:select_json_values) : obj.select_json_values
+          end
           vals.to_json(opts)
         end
       end
