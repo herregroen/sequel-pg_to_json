@@ -5,10 +5,10 @@ module Sequel
         def to_json
           self.dataset.to_json
         end
-        def json_properties *props
+        def json_attributes *props
           props.each do |prop|
             if prop.respond_to?(:to_sym) and prop = prop.to_sym and self.columns.include?(prop)
-              _json_props << prop
+              _json_attrs << prop
             end
           end
         end
@@ -22,8 +22,8 @@ module Sequel
         def _json_assocs
           @json_assocs ||= []
         end
-        def _json_props
-          @json_props ||= []
+        def _json_attrs
+          @json_attrs ||= []
         end
       end
       module DatasetMethods
@@ -34,14 +34,14 @@ module Sequel
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
               m = r[:class_name].split('::').inject(Object) {|o,c| o.const_get c}
-              s = m._json_props
+              s = m._json_attrs
               s << k if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
               s << k if k = m.primary_key and s.any? and not s.include?(k)
               ds = ds.eager_graph(assoc => proc{|ads| ads.select(*s) })
             end
           end
-          if self.model._json_props.any?
-            s  = self.model._json_props
+          if self.model._json_attrs.any?
+            s  = self.model._json_attrs
             s << self.model.primary_key unless s.include?(self.model.primary_key)
             ds = ds.select{s.map{|p|`#{ds.model.table_name}.#{p}`}}
           else
@@ -66,7 +66,7 @@ module Sequel
       module InstanceMethods
         def select_json_values
           vals = self.values
-          vals = vals.select { |k| self.class._json_props.include?(k) } if self.class._json_props.any?
+          vals = vals.select { |k| self.class._json_attrs.include?(k) } if self.class._json_attrs.any?
           return vals
         end
         def to_json opts={}
