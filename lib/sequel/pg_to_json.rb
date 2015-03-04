@@ -48,7 +48,7 @@ module Sequel
             ds = ds.select{`#{ds.model.table_name}.*`}
           end
           if opts[:associations]
-            g = s.map{|c| "#{self.model.table_name}.#{c}"} #["#{self.model.table_name}.#{self.model.primary_key}"]
+            g = ["#{self.model.table_name}.#{self.model.primary_key}"]
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
               if r[:cartesian_product_number] == 0
