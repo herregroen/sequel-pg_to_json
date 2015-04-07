@@ -43,12 +43,12 @@ module Sequel
           if self.model._json_attrs.any?
             s  = self.model._json_attrs
             s << self.model.primary_key unless s.include?(self.model.primary_key)
-            ds = ds.select{s.map{|c|`#{self.model.table_name}.#{c}`}}
+            ds = ds.select{s.map{|c|`#{ds.table_name}.#{c}`}}
           else
-            ds = ds.select{`#{self.model.table_name}.*`}
+            ds = ds.select{`#{ds.table_name}.*`}
           end
           if opts[:associations]
-            g = s.nil? ? ["#{self.model.table_name}.*"] : s.map{|c| "#{self.model.table_name}.#{c}"}
+            g = s.nil? ? ["#{ds.table_name}.*"] : s.map{|c| "#{ds.table_name}.#{c}"}
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
               if r[:cartesian_product_number] == 0
