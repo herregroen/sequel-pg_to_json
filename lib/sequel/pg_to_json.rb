@@ -35,8 +35,12 @@ module Sequel
               r = ds.model.association_reflection(assoc)
               m = r[:class_name].split('::').inject(Object) {|o,c| o.const_get c}
               s = m._json_attrs
-              s << k if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
-              s << k if k = m.primary_key and s.any? and not s.include?(k)
+              if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
+                s.push(k)
+              end
+              if k = m.primary_key and s.any? and not s.include?(k)
+                s.push(k)
+              end
               ds = ds.eager_graph(assoc => proc{|ads| ads.select(*s) })
             end
           end
