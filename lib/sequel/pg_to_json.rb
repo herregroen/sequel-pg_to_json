@@ -9,6 +9,8 @@ module Sequel
           props.each do |prop|
             if prop.respond_to?(:to_sym) and prop = prop.to_sym and self.columns.include?(prop)
               _json_attrs << prop
+            elsif prop.is_a? Hash
+              _json_attr_options.merge! prop
             end
           end
         end
@@ -16,14 +18,22 @@ module Sequel
           assocs.each do |assoc|
             if assoc.respond_to?(:to_sym) and assoc = assoc.to_sym and self.associations.include?(assoc)
               _json_assocs << assoc
+            elsif assoc.is_a? Hash
+              _json_assoc_options.merge! assoc
             end
           end
         end
         def _json_assocs
           @json_assocs ||= []
         end
+        def _json_assoc_options
+          @json_assoc_options ||= {}
+        end
         def _json_attrs
           @json_attrs ||= []
+        end
+        def _json_attr_options
+          @json_attr_options ||= {}
         end
       end
       module DatasetMethods
@@ -34,7 +44,7 @@ module Sequel
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
               m = r[:class_name].split('::').inject(Object) {|o,c| o.const_get c}
-              s = m._json_attrs
+              s = self.model._json_assoc_options[:ids_only] ? m.primary_key : m._json_attrs
               if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
                 s.push(k)
               end
