@@ -2,8 +2,8 @@ module Sequel
   module Plugins
     module PgToJson
       module ClassMethods
-        def to_json
-          self.dataset.to_json
+        def to_json opts={}
+          self.dataset.to_json opts
         end
         def json_attributes *props
           props.each do |prop|
