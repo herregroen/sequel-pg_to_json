@@ -75,11 +75,7 @@ module Sequel
             ds = ds.group{g.map{|c| `#{c}`}}
           end
           json = ds.from_self(alias: :row).get{array_to_json(array_agg(row_to_json(row)))}
-          if json
-            json.gsub(/\[null(\, null)*\]/,'[]')
-          else
-            '[]'
-          end
+          return json ? json.gsub(/\[null(\,\s?null)*\]/,'[]') : '[]'
         end
       end
       module InstanceMethods
