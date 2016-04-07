@@ -27,3 +27,8 @@ class User < Sequel::Model
   plugin :pg_to_json
 end
 ```
+
+Using this plugin requires activating the pg_json extension for your database.
+```ruby
+DB.extension :pg_json
+```
