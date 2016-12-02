@@ -43,7 +43,7 @@ module Sequel
           if opts[:associations]
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
-              m = r[:class_name].split('::').inject(Object) {|o,c| o.const_get c}
+              m = r[:class_name].split('::').reject { |c| c.empty? }.inject(Object) {|o,c| o.const_get c}
               s = self.model._json_assoc_options[:ids_only] ? [m.primary_key] : m._json_attrs
               if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
                 s.push(k)
