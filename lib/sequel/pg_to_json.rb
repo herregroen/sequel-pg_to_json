@@ -65,7 +65,7 @@ module Sequel
             g = (s || self.columns).map{|c| "#{ds.model.table_name}.#{c}"}
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
-              m = r[:class_name].split('::').inject(Object) {|o,c| o.const_get c}
+              m = r[:class_name].split('::').reject { |c| c.empty? }.inject(Object) {|o,c| o.const_get c}
               if r[:cartesian_product_number] == 0
                 if self.model._json_assoc_options[:ids_only]
                   ds = ds.select_append{`\"#{assoc}\".\"#{m.primary_key}\"`.as(assoc)}
