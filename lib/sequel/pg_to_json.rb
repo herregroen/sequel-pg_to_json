@@ -109,11 +109,17 @@ module Sequel
             if self.class._json_assoc_options[assoc] and self.class._json_assoc_options[assoc][:ids_only]
               if obj.is_a?(Array)
                 vals["#{assoc.to_s.singularize}_ids"] = obj.map{ |o| o.send(o.primary_key) }
-              else
+              elsif obj != nil
                 vals["#{assoc}_id"] = obj.send(obj.primary_key)
+              else
+                vals["#{assoc}_id"] = nil
               end
             else
-              vals[assoc] = obj.is_a?(Array) ? obj.map(&:select_json_values) : obj.select_json_values
+              if obj != nil
+                vals[assoc] = obj.is_a?(Array) ? obj.map(&:select_json_values) : obj.select_json_values
+              else
+                vals[assoc] = nil
+              end
             end
           end
           vals.to_json(opts)
