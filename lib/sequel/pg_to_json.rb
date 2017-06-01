@@ -10,6 +10,9 @@ module Sequel
             if prop.respond_to?(:to_sym) and prop = prop.to_sym and self.columns.include?(prop)
               _json_attrs << prop
             elsif prop.is_a? Hash
+              prop.keys.each do |p|
+                _json_attrs << p  if p.respond_to?(:to_sym) and p = p.to_sym and self.columns.include?(p)
+              end
               _json_attr_options.merge! prop
             end
           end
@@ -19,6 +22,9 @@ module Sequel
             if assoc.respond_to?(:to_sym) and assoc = assoc.to_sym and self.associations.include?(assoc)
               _json_assocs << assoc
             elsif assoc.is_a? Hash
+              assoc.keys.each do |a|
+                _json_assocs << a  if a.respond_to?(:to_sym) and a = a.to_sym and self.associations.include?(a)
+              end
               _json_assoc_options.merge! assoc
             end
           end
@@ -44,7 +50,7 @@ module Sequel
             self.model._json_assocs.each do |assoc|
               r = ds.model.association_reflection(assoc)
               m = r[:class_name].split('::').reject { |c| c.empty? }.inject(Object) {|o,c| o.const_get c}
-              s = self.model._json_assoc_options[:ids_only] ? [m.primary_key] : m._json_attrs
+              s = (self.model._json_assoc_options[assoc] and self.model._json_assoc_options[assoc][:ids_only]) ? [m.primary_key] : m._json_attrs
               if k = r[:key] and m.columns.include?(k) and s.any? and not s.include?(k)
                 s.push(k)
               end
@@ -67,14 +73,14 @@ module Sequel
               r = ds.model.association_reflection(assoc)
               m = r[:class_name].split('::').reject { |c| c.empty? }.inject(Object) {|o,c| o.const_get c}
               if r[:cartesian_product_number] == 0
-                if self.model._json_assoc_options[:ids_only]
+                if self.model._json_assoc_options[assoc] and self.model._json_assoc_options[assoc][:ids_only]
                   ds = ds.select_append{`\"#{assoc}\".\"#{m.primary_key}\"`.as(assoc)}
                 else
                   ds = ds.select_append{row_to_json(`\"#{assoc}\"`).as(assoc)}
                 end
                 g << "\"#{assoc}\".*"
               else
-                if self.model._json_assoc_options[:ids_only]
+                if self.model._json_assoc_options[assoc] and self.model._json_assoc_options[assoc][:ids_only]
                   ds = ds.select_append{array_to_json(array_agg(`\"#{assoc}\".\"#{m.primary_key}\"`)).as(assoc)}
                 else
                   ds = ds.select_append{array_to_json(array_agg(`\"#{assoc}\"`)).as(assoc)}
