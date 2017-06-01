@@ -84,16 +84,16 @@ module Sequel
                 end
               else
                 if self.model._json_assoc_options[assoc] and self.model._json_assoc_options[assoc][:ids_only]
-                  ds = ds.select_append{array_to_json(array_agg(`\"#{assoc}\".\"#{m.primary_key}\"`)).as("#{assoc.to_s.singularize}_ids")}
+                  ds = ds.select_append{`COALESCE(json_agg(DISTINCT \"#{assoc}\".\"#{m.primary_key}\") FILTER (WHERE \"#{assoc}\".\"#{m.primary_key}\" IS NOT NULL), '[]')`.as("#{assoc.to_s.singularize}_ids")}
                 else
-                  ds = ds.select_append{array_to_json(array_agg(`\"#{assoc}\"`)).as(assoc)}
+                  ds = ds.select_append{`COALESCE(json_agg(DISTINCT \"#{assoc}\") FILTER (WHERE \"#{assoc}\".\"#{m.primary_key}\" IS NOT NULL), '[]')`.as(assoc)}
                 end
               end
             end
             ds = ds.group{g.map{|c| `#{c}`}}
           end
-          json = ds.from_self(alias: :row).get{array_to_json(array_agg(row_to_json(row)))}
-          return json ? json.gsub('[null]', '[]') : '[]'
+          json = ds.from_self(alias: :row).get{json_agg(row_to_json(row))}
+          return json ? json : '[]'
         end
       end
       module InstanceMethods
