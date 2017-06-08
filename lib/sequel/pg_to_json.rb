@@ -65,9 +65,9 @@ module Sequel
           if self.model._json_attrs.any?
             s  = self.model._json_attrs
             s << self.model.primary_key unless s.include?(self.model.primary_key)
-            ds = ds.select{s.map{|c|`#{ds.model.table_name}.#{c}`}}
+            ds = ds.select(*s.map{|c| Sequel.lit("#{ds.model.table_name}.#{c}")})
           else
-            ds = ds.select{`#{ds.model.table_name}.*`}
+            ds = ds.select(Sequel.lit("#{ds.model.table_name}.*"))
           end
           if opts[:associations]
             g = (s || self.columns).map{|c| "#{ds.model.table_name}.#{c}"}
@@ -76,23 +76,23 @@ module Sequel
               m = r[:class_name].split('::').reject { |c| c.empty? }.inject(Object) {|o,c| o.const_get c}
               if r[:cartesian_product_number] == 0
                 if self.model._json_assoc_options[assoc] and self.model._json_assoc_options[assoc][:ids_only]
-                  ds = ds.select_append{`\"#{assoc}\".\"#{m.primary_key}\"`.as("#{assoc}_id")}
+                  ds = ds.select_append(Sequel.lit("\"#{assoc}\".\"#{m.primary_key}\" AS \"#{assoc}_id\""))
                   g << "\"#{assoc}\".id"
                 else
-                  ds = ds.select_append{row_to_json(`\"#{assoc}\"`).as(assoc)}
+                  ds = ds.select_append(Sequel.lit("row_to_json(\"#{assoc}\") AS #{assoc}"))
                   g << "\"#{assoc}\".*"
                 end
               else
                 if self.model._json_assoc_options[assoc] and self.model._json_assoc_options[assoc][:ids_only]
-                  ds = ds.select_append{`COALESCE(json_agg(DISTINCT \"#{assoc}\".\"#{m.primary_key}\") FILTER (WHERE \"#{assoc}\".\"#{m.primary_key}\" IS NOT NULL), '[]')`.as("#{assoc.to_s.singularize}_ids")}
+                  ds = ds.select_append(Sequel.lit("COALESCE(json_agg(DISTINCT \"#{assoc}\".\"#{m.primary_key}\") FILTER (WHERE \"#{assoc}\".\"#{m.primary_key}\" IS NOT NULL), '[]') AS #{assoc.to_s.singularize}_ids"))
                 else
-                  ds = ds.select_append{`COALESCE(json_agg(DISTINCT \"#{assoc}\") FILTER (WHERE \"#{assoc}\".\"#{m.primary_key}\" IS NOT NULL), '[]')`.as(assoc)}
+                  ds = ds.select_append(Sequel.lit("COALESCE(json_agg(DISTINCT \"#{assoc}\") FILTER (WHERE \"#{assoc}\".\"#{m.primary_key}\" IS NOT NULL), '[]') AS \"#{assoc}\""))
                 end
               end
             end
-            ds = ds.group{g.map{|c| `#{c}`}}
+            ds = ds.group(*g.map{|c| Sequel.lit(c)})
           end
-          json = ds.from_self(alias: :row).get{json_agg(row_to_json(row))}
+          json = ds.from_self(alias: :row).get(Sequel.lit('json_agg(row_to_json(row))'))
           return json ? json : '[]'
         end
       end
